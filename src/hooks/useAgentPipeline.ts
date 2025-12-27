@@ -31,10 +31,13 @@ export function useAgentPipeline() {
     setError(null);
 
     try {
-      // Step 1: Inferencing
-      setState('inferencing');
-      await delay(500); // Visual delay for UX
+      // Step 1: Connecting
+      setState('connecting');
+      await delay(400);
 
+      // Step 2: Inferencing
+      setState('inferencing');
+      
       const { data, error: fnError } = await supabase.functions.invoke('cortensor-inference', {
         body: { prompt, task: taskName },
       });
@@ -48,22 +51,24 @@ export function useAgentPipeline() {
       setIsDemoMode(result.is_demo_mode);
 
       if (result.is_demo_mode) {
-        toast.info('Running in demo mode - Cortensor unavailable');
+        toast.info('Running in demo mode - Connect Cortensor Router for live inference', {
+          duration: 4000,
+        });
       }
 
-      // Step 2: Validating
+      // Step 3: Validating
       setState('validating');
-      await delay(800); // Validation visual delay
+      await delay(600);
 
-      // Step 3: Decision
+      // Step 4: Decision
       if (result.decision === 'approved') {
         setState('approved');
-        await delay(400);
+        await delay(500);
         setState('executed');
-        toast.success('Inference approved and executed');
+        toast.success('Inference approved and executed!');
       } else {
         setState('rejected');
-        toast.error(`Inference rejected: ${result.rejection_reason}`);
+        toast.error(`Rejected: ${result.rejection_reason}`);
       }
 
       // Generate receipt

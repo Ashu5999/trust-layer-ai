@@ -8,7 +8,12 @@ import {
   ChevronUp, 
   Download, 
   Copy, 
-  Check 
+  Check,
+  Hash,
+  Clock,
+  Users,
+  Shield,
+  Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,6 +26,7 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
   const [copied, setCopied] = useState(false);
 
   const receiptJson = JSON.stringify(receipt, null, 2);
+  const isApproved = receipt.decision === 'approved';
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(receiptJson);
@@ -34,7 +40,7 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `trust-receipt-${receipt.receipt_id}.json`;
+    a.download = `trustlayer-receipt-${receipt.receipt_id.slice(0, 8)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -42,11 +48,15 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
     toast.success('Receipt downloaded');
   };
 
-  const isApproved = receipt.decision === 'approved';
-
   return (
     <motion.div
-      className="border border-border rounded-lg overflow-hidden bg-card"
+      className={`
+        rounded-xl overflow-hidden border-2 transition-all
+        ${isApproved 
+          ? 'border-trust-green/30 bg-gradient-to-br from-card to-trust-green/5' 
+          : 'border-destructive/30 bg-gradient-to-br from-card to-destructive/5'
+        }
+      `}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
@@ -54,33 +64,43 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
       {/* Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors"
+        className="w-full flex items-center justify-between p-5 hover:bg-muted/20 transition-colors"
       >
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-            isApproved ? 'bg-trust-green/20' : 'bg-destructive/20'
-          }`}>
-            <FileText className={`w-5 h-5 ${isApproved ? 'text-trust-green' : 'text-destructive'}`} />
-          </div>
+        <div className="flex items-center gap-4">
+          <motion.div 
+            className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              isApproved ? 'bg-trust-green/20' : 'bg-destructive/20'
+            }`}
+            whileHover={{ scale: 1.05 }}
+          >
+            <FileText className={`w-6 h-6 ${isApproved ? 'text-trust-green' : 'text-destructive'}`} />
+          </motion.div>
           <div className="text-left">
-            <h3 className="font-semibold text-foreground">Trust Receipt</h3>
-            <p className="text-xs text-muted-foreground font-mono">{receipt.receipt_id.slice(0, 8)}...</p>
+            <h3 className="font-semibold text-foreground text-lg">Trust Receipt</h3>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <Hash className="w-3 h-3" />
+              <span className="font-mono">{receipt.receipt_id.slice(0, 16)}...</span>
+            </div>
           </div>
         </div>
         
-        <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            isApproved 
-              ? 'bg-trust-green/20 text-trust-green' 
-              : 'bg-destructive/20 text-destructive'
-          }`}>
+        <div className="flex items-center gap-4">
+          <motion.span 
+            className={`px-4 py-1.5 rounded-full text-sm font-bold ${
+              isApproved 
+                ? 'bg-trust-green/20 text-trust-green' 
+                : 'bg-destructive/20 text-destructive'
+            }`}
+            whileHover={{ scale: 1.05 }}
+          >
             {receipt.decision.toUpperCase()}
-          </span>
-          {isExpanded ? (
-            <ChevronUp className="w-5 h-5 text-muted-foreground" />
-          ) : (
+          </motion.span>
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
             <ChevronDown className="w-5 h-5 text-muted-foreground" />
-          )}
+          </motion.div>
         </div>
       </button>
 
@@ -91,82 +111,122 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.3 }}
             className="overflow-hidden"
           >
-            <div className="p-4 pt-0 space-y-4">
-              {/* Summary grid */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Task</p>
-                  <p className="text-sm font-medium text-foreground truncate">{receipt.task}</p>
-                </div>
-                <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Timestamp</p>
+            <div className="p-5 pt-0 space-y-5">
+              {/* Stats grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-muted/30 rounded-xl p-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-muted-foreground mb-1">
+                    <Clock className="w-4 h-4" />
+                    <span className="text-xs">Timestamp</span>
+                  </div>
                   <p className="text-sm font-medium text-foreground">
-                    {new Date(receipt.timestamp).toLocaleString()}
+                    {new Date(receipt.timestamp).toLocaleTimeString()}
                   </p>
                 </div>
-                <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Agreement Score</p>
-                  <p className={`text-lg font-bold ${receipt.agreement_score >= 60 ? 'text-trust-green' : 'text-destructive'}`}>
+                <div className="bg-muted/30 rounded-xl p-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-muted-foreground mb-1">
+                    <Users className="w-4 h-4" />
+                    <span className="text-xs">Miners</span>
+                  </div>
+                  <p className="text-sm font-bold text-trust-purple">{receipt.miners.length}</p>
+                </div>
+                <div className="bg-muted/30 rounded-xl p-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-muted-foreground mb-1">
+                    <Shield className="w-4 h-4" />
+                    <span className="text-xs">Agreement</span>
+                  </div>
+                  <p className={`text-sm font-bold ${receipt.agreement_score >= 60 ? 'text-trust-green' : 'text-destructive'}`}>
                     {receipt.agreement_score}%
                   </p>
                 </div>
-                <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-xs text-muted-foreground">Validator Score</p>
-                  <p className={`text-lg font-bold ${receipt.validator_score >= 70 ? 'text-trust-green' : 'text-destructive'}`}>
+                <div className="bg-muted/30 rounded-xl p-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 text-muted-foreground mb-1">
+                    <Zap className="w-4 h-4" />
+                    <span className="text-xs">Trust Score</span>
+                  </div>
+                  <p className={`text-sm font-bold ${receipt.validator_score >= 70 ? 'text-trust-green' : 'text-destructive'}`}>
                     {receipt.validator_score}
                   </p>
                 </div>
               </div>
 
-              {/* Input */}
+              {/* Task info */}
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Input Prompt</p>
-                <div className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-sm text-foreground">{receipt.input}</p>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Task Name
+                </label>
+                <div className="bg-muted/30 rounded-lg px-4 py-3">
+                  <p className="text-sm font-mono text-foreground">{receipt.task}</p>
+                </div>
+              </div>
+
+              {/* Input prompt */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Input Prompt
+                </label>
+                <div className="bg-muted/30 rounded-lg px-4 py-3 max-h-32 overflow-y-auto">
+                  <p className="text-sm text-foreground whitespace-pre-wrap">{receipt.input}</p>
                 </div>
               </div>
 
               {/* Final output */}
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Final Output</p>
-                <div className="bg-trust-cyan/10 border border-trust-cyan/30 rounded-lg p-3">
-                  <p className="text-sm text-foreground font-mono">{receipt.final_output}</p>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Verified Output
+                </label>
+                <div className={`
+                  rounded-lg px-4 py-3 border-2
+                  ${isApproved 
+                    ? 'bg-trust-green/5 border-trust-green/30' 
+                    : 'bg-destructive/5 border-destructive/30'
+                  }
+                `}>
+                  <p className="text-sm font-mono text-foreground whitespace-pre-wrap">
+                    {receipt.final_output}
+                  </p>
                 </div>
               </div>
 
               {/* Miners list */}
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Participating Miners ({receipt.miners.length})</p>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Participating Miners
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {receipt.miners.map((minerId) => (
-                    <span 
+                  {receipt.miners.map((minerId, i) => (
+                    <motion.span 
                       key={minerId}
-                      className="px-2 py-1 bg-trust-purple/20 text-trust-purple text-xs font-mono rounded"
+                      className="px-3 py-1.5 bg-trust-purple/10 border border-trust-purple/30 text-trust-purple text-xs font-mono rounded-lg"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * 0.05 }}
                     >
                       {minerId}
-                    </span>
+                    </motion.span>
                   ))}
                 </div>
               </div>
 
-              {/* JSON preview */}
+              {/* Raw JSON */}
               <div className="space-y-2">
-                <p className="text-xs text-muted-foreground">Raw Receipt (JSON)</p>
-                <pre className="bg-muted/50 rounded-lg p-3 text-xs text-foreground font-mono overflow-x-auto max-h-48 overflow-y-auto">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Raw Receipt (JSON)
+                </label>
+                <pre className="bg-background/80 border border-border rounded-lg p-4 text-xs text-foreground/80 font-mono overflow-x-auto max-h-48 overflow-y-auto">
                   {receiptJson}
                 </pre>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="flex gap-3 pt-2">
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={handleCopy}
-                  className="flex-1"
+                  className="flex-1 border-border hover:border-trust-cyan hover:text-trust-cyan"
                 >
                   {copied ? (
                     <Check className="w-4 h-4 mr-2 text-trust-green" />
@@ -177,9 +237,8 @@ export function TrustReceipt({ receipt }: TrustReceiptProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  size="sm"
                   onClick={handleDownload}
-                  className="flex-1"
+                  className="flex-1 border-border hover:border-trust-green hover:text-trust-green"
                 >
                   <Download className="w-4 h-4 mr-2" />
                   Export Receipt
