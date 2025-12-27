@@ -10,8 +10,8 @@ interface DemoButtonProps {
 
 export function DemoButton({ onDemo, disabled }: DemoButtonProps) {
   const handleDemo = () => {
-    const randomPrompt = DEMO_PROMPTS[Math.floor(Math.random() * DEMO_PROMPTS.length)];
-    onDemo(randomPrompt);
+    const randomDemo = DEMO_PROMPTS[Math.floor(Math.random() * DEMO_PROMPTS.length)];
+    onDemo(randomDemo.prompt);
   };
 
   return (
